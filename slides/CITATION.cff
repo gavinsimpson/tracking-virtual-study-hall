@@ -1,0 +1,46 @@
+title: "Loss of lake ice cover in northern hemisphere lakes"
+authors:
+  - family-names: Simpson
+    given-names: Gavin
+    orcid: "https://orcid.org/0000-0002-9084-8413"
+  - family-names: Mezzini
+    given-names: Stefano
+    orcid: "https://orcid.org/0000-0001-8551-7436"
+cff-version: 1.2.0
+contact:
+  - affiliation: "Department of Animal and Veterinary Science, Aarhus University"
+    email: "ucfagls@gmail.com"
+    family-names: Simpson
+    given-names: Gavin
+  - affiliation: "Department of Biology, University of British Columbia"
+    email: "ucfagls@gmail.com"
+    family-names: Mezzini
+    given-names: Stefano
+date-released: "2023-06-06"
+doi: "10.5281/zenodo.8007293"
+version: "1.0"
+keywords:
+  - "lake ice phenology"
+  - "time series"
+  - "generalised additive models"
+  - "trends"
+  - "penalized splines"
+  - "Arctic"
+  - "lakes"
+license: "CC-BY-4.0"
+license-url: "https://creativecommons.org/licenses/by/4.0/legalcode"
+message: "If you use or reuse this presentation please cite it using 'preferred.citation'"
+preferred-citation:
+  authors:
+    - family-names: Simpson
+      given-names: "Gavin L."
+    - family-names: Mezzini
+      given-names: "Stefano"
+  title: "Loss of lake ice cover in northern hemisphere lakes. Circle U Climate Change & Water Seminar. Humboldt Universität, Berlin, Germany, June 6, 2023"
+  type: generic
+  year: 2023
+  doi: "10.5281/zenodo.8007293"
+abstract: Records of lake ice cover have been kept for many lakes worldwide for decades, or even centuries in some instances. These recordings reflect the profound social and cultural importance or lake ice for, inter alia, transportation, fishing, and cultural and spiritual activities in many communities and cultures. These records of lake ice cover also represent an excellent repository of information on climatic change as the formation and loss of lake ice is extremely sensitive to variations in climatic conditions, especially air temperature. Using these records, early lake ice phenology studies have demonstrated long-term changes in lake ice formation, with later ice-up, earlier ice-out, and consequently shorter duration of lake ice cover in many lakes. More recently, research has focussed on understanding the spatial and temporal patterns of these changes in lake ice phenology. Trends in lake ice freeze and thaw dates have traditionally been estimated using simple linear regression models. There are a number of issues with this methodology, however; i) freeze and thaw dates are one form of time-to-event data, which are not well-fitted by the Gaussian distribution assumed in linear regression, ii) observations of freeze dates especially may be censored (i.e. a lake may not freeze in a given year), iii) the linear trends estimated are not flexible enough to answer questions pertaining to how rates of change in freeze and thaw dates themselves have changed over time, and iv) the available data represent a sample of convenience, a feature that is rarely considered when calculating average "change" statistics for the sample.
+
+  Here, we will discuss how an event history model — the piece-wise exponential additive mixed model, or PAMM — can be used to address each of the issues. This is achieved through the use of appropriate conditional distributions for time-to-event data, which can also account for event censoring, while the use of penalised splines in the model structure addresses the remaining problems by fitting trends that can be non-linear and allowing for the control of effects from confounders. We illustrate our event history approach using a northern hemispheric data set of lake ice freeze and thaw dates from 563 lakes, and compare results from our models with previously published studies which used simpler, linear regression estimates. We show that, by using a modelling approach that is specifically tailored to the time-to-event nature of the observations, we are better able to estimate trends, rates of change, and uncertainties in those estimates.
+

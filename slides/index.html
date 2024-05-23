@@ -1,0 +1,1794 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Generalized additive models and gratia</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Gavin Simpson" />
+    <meta name="date" content="2024-05-23" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/tile-view/tile-view.css" rel="stylesheet" />
+    <script src="libs/tile-view/tile-view.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="slides.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: inverse, middle, left, my-title-slide, title-slide
+
+.title[
+# Generalized additive models and gratia
+]
+.author[
+### Gavin Simpson
+]
+.institute[
+### Aarhus University
+]
+.date[
+### May 23, 2024
+]
+
+---
+
+
+
+
+
+
+
+---
+class: inverse middle center huge-subsection
+
+# GAMs
+
+---
+class: inverse middle center subsection
+
+# Motivating example
+
+---
+
+# HadCRUT4 time series
+
+&lt;img src="index_files/figure-html/hadcrut-temp-example-1.svg" style="display: block; margin: auto;" /&gt;
+
+???
+
+Hadley Centre NH temperature record ensemble
+
+How would you model the trend in these data?
+
+---
+
+# (Generalized) Linear Models
+
+`$$y_i \sim \mathcal{N}(\mu_i, \sigma^2)$$`
+
+`$$\mu_i = \beta_0 + \beta_1 \mathtt{year}_{i} + \beta_2 \mathtt{year}^2_{1i} + \cdots + \beta_j \mathtt{year}^j_{i}$$`
+
+Assumptions
+
+1. linear effects of covariates are good approximation of the true effects
+2. conditional on the values of covariates, `\(y_i | \mathbf{X} \sim \mathcal{N}(\mu_i, \sigma^2)\)`
+3. this implies all observations have the same *variance*
+4. `\(y_i | \mathbf{X} = \mathbf{x}\)` are *independent*
+
+An **additive** model addresses the first of these
+
+---
+class: inverse center middle subsection
+
+# Why bother with anything more complex?
+
+---
+
+# Is this linear?
+
+&lt;img src="index_files/figure-html/hadcrut-temp-example-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Polynomials perhaps&amp;hellip;
+
+&lt;img src="index_files/figure-html/hadcrut-temp-polynomial-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Polynomials perhaps&amp;hellip;
+
+We can keep on adding ever more powers of `\(\boldsymbol{x}\)` to the model &amp;mdash; model selection problem
+
+**Runge phenomenon** &amp;mdash; oscillations at the edges of an interval &amp;mdash; means simply moving to higher-order polynomials doesn't always improve accuracy
+
+---
+class: inverse middle center subsection
+
+# GAMs offer a solution
+
+---
+
+# HadCRUT data set
+
+
+```r
+library("readr")
+library("dplyr")
+URL &lt;-  "https://bit.ly/hadcrutv4"
+gtemp &lt;- read_table(URL, col_types = 'nnnnnnnnnnnn', col_names = FALSE) |&gt;
+    select(num_range('X', 1:2)) %&gt;% setNames(nm = c('Year', 'Temperature'))
+```
+
+[File format](https://www.metoffice.gov.uk/hadobs/hadcrut4/data/current/series_format.html)
+
+---
+
+# HadCRUT data set
+
+
+```r
+gtemp
+```
+
+```
+## # A tibble: 172 × 2
+##     Year Temperature
+##    &lt;dbl&gt;       &lt;dbl&gt;
+##  1  1850      -0.336
+##  2  1851      -0.159
+##  3  1852      -0.107
+##  4  1853      -0.177
+##  5  1854      -0.071
+##  6  1855      -0.19 
+##  7  1856      -0.378
+##  8  1857      -0.405
+##  9  1858      -0.4  
+## 10  1859      -0.215
+## # ℹ 162 more rows
+```
+
+---
+
+# Fitting a GAM
+
+
+```r
+library("mgcv")
+m &lt;- gam(Temperature ~ s(Year), data = gtemp, method = 'REML')
+summary(m)
+```
+
+.smaller[
+
+```
+## 
+## Family: gaussian 
+## Link function: identity 
+## 
+## Formula:
+## Temperature ~ s(Year)
+## 
+## Parametric coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)  
+## (Intercept) -0.020477   0.009731  -2.104   0.0369 *
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Approximate significance of smooth terms:
+##           edf Ref.df     F p-value    
+## s(Year) 7.837   8.65 145.2  &lt;2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## R-sq.(adj) =   0.88   Deviance explained = 88.6%
+## -REML = -91.237  Scale est. = 0.016287  n = 172
+```
+]
+
+---
+
+# Fitted GAM
+
+&lt;img src="index_files/figure-html/hadcrtemp-plot-gam-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+class: inverse middle center big-subsection
+
+# GAMs
+
+---
+
+# Generalized Additive Models
+
+&lt;br /&gt;
+
+![](resources/tradeoff-slider.png)
+
+.references[Source: [GAMs in R by Noam Ross](https://noamross.github.io/gams-in-r-course/)]
+
+???
+
+GAMs are an intermediate-complexity model
+
+* can learn from data without needing to be informed by the user
+* remain interpretable because we can visualize the fitted features
+
+---
+
+# How is a GAM different?
+
+`$$\begin{align*}
+y_i &amp;\sim \mathcal{D}(\mu_i, \theta) \\ 
+\mathbb{E}(y_i) &amp;= \mu_i = g(\eta_i)^{-1}
+\end{align*}$$`
+
+We model the mean of data as a sum of linear terms:
+
+`$$\eta_i = \beta_0 +\sum_j \color{red}{ \beta_j x_{ji}}$$`
+
+A GAM is a sum of _smooth functions_ or _smooths_
+
+`$$\eta_i = \beta_0 + \sum_j \color{red}{f_j(x_{ji})}$$`
+
+---
+
+# How did `gam()` *know*?
+
+&lt;img src="index_files/figure-html/hadcrtemp-plot-gam-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+class: inverse
+background-image: url('./resources/rob-potter-398564.jpg')
+background-size: contain
+
+# What magic is this?
+
+.footnote[
+&lt;a style="background-color:black;color:white;text-decoration:none;padding:4px 6px;font-family:-apple-system, BlinkMacSystemFont, &amp;quot;San Francisco&amp;quot;, &amp;quot;Helvetica Neue&amp;quot;, Helvetica, Ubuntu, Roboto, Noto, &amp;quot;Segoe UI&amp;quot;, Arial, sans-serif;font-size:12px;font-weight:bold;line-height:1.2;display:inline-block;border-radius:3px;" href="https://unsplash.com/@robpotter?utm_medium=referral&amp;amp;utm_campaign=photographer-credit&amp;amp;utm_content=creditBadge" target="_blank" rel="noopener noreferrer" title="Download free do whatever you want high-resolution photos from Rob Potter"&gt;&lt;span style="display:inline-block;padding:2px 3px;"&gt;&lt;svg xmlns="http://www.w3.org/2000/svg" style="height:12px;width:auto;position:relative;vertical-align:middle;top:-1px;fill:white;" viewBox="0 0 32 32"&gt;&lt;title&gt;&lt;/title&gt;&lt;path d="M20.8 18.1c0 2.7-2.2 4.8-4.8 4.8s-4.8-2.1-4.8-4.8c0-2.7 2.2-4.8 4.8-4.8 2.7.1 4.8 2.2 4.8 4.8zm11.2-7.4v14.9c0 2.3-1.9 4.3-4.3 4.3h-23.4c-2.4 0-4.3-1.9-4.3-4.3v-15c0-2.3 1.9-4.3 4.3-4.3h3.7l.8-2.3c.4-1.1 1.7-2 2.9-2h8.6c1.2 0 2.5.9 2.9 2l.8 2.4h3.7c2.4 0 4.3 1.9 4.3 4.3zm-8.6 7.5c0-4.1-3.3-7.5-7.5-7.5-4.1 0-7.5 3.4-7.5 7.5s3.3 7.5 7.5 7.5c4.2-.1 7.5-3.4 7.5-7.5z"&gt;&lt;/path&gt;&lt;/svg&gt;&lt;/span&gt;&lt;span style="display:inline-block;padding:2px 3px;"&gt;Rob Potter&lt;/span&gt;&lt;/a&gt;
+]
+
+---
+class: inverse
+background-image: url('resources/wiggly-things.png')
+background-size: contain
+
+---
+
+# Fitting a GAM in R
+
+```r
+model &lt;- gam(y ~ s(x1) + s(x2) + te(x3, x4), # formuala describing model
+             data = my_data_frame,           # your data
+             method = "REML",                # or "ML"
+             family = gaussian)              # or something more exotic
+```
+
+`s()` terms are smooths of one or more variables
+
+`te()` terms are the smooth equivalent of *main effects + interactions*
+
+`$$\eta_i = \beta_0 + f(\mathtt{Year}_i)$$`
+
+```r
+library("mgcv")
+gam(Temperature ~ s(Year, k = 10), data = gtemp, method = 'REML')
+```
+
+---
+
+# Generalized additive models
+
+PAMMs are a special case of the generalized additive model (GAM)
+
+A GAM is a model where the effects of covariates can be represented as smooth functions learned from the data
+
+`\begin{align*}
+y_i &amp;\sim    \mathcal{D}(\mu_i, \boldsymbol{\phi}) \\
+g(\mu_i) &amp;=  \mathbf{A}_i\boldsymbol{\gamma} + \sum_{j=1} f_j(x_{ji})
+\end{align*}`
+
+--
+
+The smooth functions `\(f_j()\)` are set up as penalized splines
+
+---
+
+# Splines formed from basis functions
+
+&lt;img src="index_files/figure-html/basis-functions-1.svg" style="display: block; margin: auto;" /&gt;
+
+???
+
+Splines are built up from basis functions
+
+Here I'm showing a cubic regression spline basis with 10 knots/functions
+
+We weight each basis function to get a spline. Here all the basis functions have the same weight so they would fit a horizontal line
+
+---
+
+# Weight basis functions &amp;#8680; spline
+
+
+
+.center[![](resources/basis-fun-anim.gif)]
+
+???
+
+But if we choose different weights we get more wiggly spline
+
+Each of the splines I showed you earlier are all generated from the same basis functions just using different weights
+
+---
+
+# Maximise penalised log-likelihood &amp;#8680; &amp;beta;
+
+
+
+.center[
+  ![](resources/gam-crs-animation.gif)
+]
+
+???
+
+Fitting a GAM involves finding the weights for the basis functions that produce a spline that fits the data best, subject to some constraints
+---
+class: inverse middle center big-subsection
+
+# gratia 📦
+
+---
+
+# gratia 📦
+
+{gratia} is a package for working with GAMs
+
+Mostly limited to GAMs fitted with {mgcv} &amp; {gamm4}
+
+Follows (sort of) Tidyverse principles
+
+* return tibbles (data frames)
+
+* suitable for plotting with {ggplot2}
+
+* graphics use {ggplot2} and {patchwork}
+
+---
+
+# `draw()`
+
+The main function is `draw()`
+
+Has methods for many of the function outputs in {gratia} and for models
+
+---
+
+# Plotting smooths
+
+
+```r
+data(mcycle, package = "MASS")
+m &lt;- gam(accel ~ s(times), data = mcycle, method = "REML")
+draw(m)
+```
+
+&lt;img src="index_files/figure-html/draw-mcycle-1.svg" width="90%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Plotting smooths
+
+
+```r
+df &lt;- data_sim("eg1", n = 1000, seed = 42)
+# df
+
+m_sim &lt;- gam(y ~ s(x0) + s(x1) + s(x2) + s(x3),
+  data = df, method = "REML")
+draw(m_sim)
+```
+
+---
+
+# Plotting smooths
+
+
+```r
+draw(m_sim)
+```
+
+&lt;img src="index_files/figure-html/draw-four-fun-sim-plot-1.svg" width="95%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Plotting smooths
+
+
+```r
+draw(m_sim,
+     residuals = TRUE,           # add partial residuals
+     overall_uncertainty = TRUE, # include uncertainty due to constant
+     unconditional = TRUE,       # correct for smoothness selection
+     rug = FALSE)                # turn off rug plot
+```
+
+---
+
+# Plotting smooths
+
+.center[
+&lt;img src="index_files/figure-html/draw-mcycle-options-plot-1.svg" width="95%" style="display: block; margin: auto;" /&gt;
+]
+
+---
+
+# New in 0.9.0
+
+Posterior simulation
+
+&lt;https://gavinsimpson.github.io/gratia/articles/posterior-simulation.html&gt;
+
+* `smooth_samples()`
+    * posterior of individual smooths &amp;mdash; model uncertainty
+* `fitted_samples()`
+    * posterior expectations &amp;mdash; model uncertainty
+* `predicted_samples()`
+    * simulated response data &amp;mdash; sampling variation
+* `posterior_samples()`
+    * uncertainty in expectation &amp; sampling variation
+
+---
+
+# Ocean chlorophyl-*a*
+
+Model Chlorophyl-*a* in ocean samples
+
+
+```r
+library("gratia")
+library("ggplot2")
+library("dplyr")
+```
+
+
+```r
+library("gamair")
+data(chl, package = "gamair")
+```
+
+---
+
+# Ocean chlorophyl-*a*
+
+
+```r
+ctrl &lt;- gam.control(nthreads = 4)
+m1 &lt;- gam(
+  chl ~ s(lat, lon, bs = "sos", m = -1, k = 150) +
+    s(jul.day, bs = "cr", k = 20) +
+    s(bath, k = 10),
+  data = chl,
+  method = "REML",
+  control = ctrl,
+  family = tw()
+)
+```
+
+---
+
+# Ocean chlorophyl-*a*
+
+
+```r
+overview(m1)
+```
+
+```
+## 
+## Generalized Additive Model with 3 terms
+## 
+##   term       type      k    edf statistic p.value
+##   &lt;chr&gt;      &lt;chr&gt; &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;  
+## 1 s(lat,lon) SOS     149 136.        41.9 &lt; 0.001
+## 2 s(jul.day) CRS      19  18.0      154.  &lt; 0.001
+## 3 s(bath)    TPRS      9   7.76      13.3 &lt; 0.001
+```
+
+---
+
+# Ocean chlorophyl-*a*
+
+
+```r
+crs &lt;- "+proj=ortho +lat_0=20 +lon_0=-37"
+draw(m1, crs = crs, dist = 0.05, rug = FALSE)
+```
+
+&lt;img src="index_files/figure-html/draw-chl-model-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Ocean chlorophyl-*a*
+
+
+```r
+appraise(m1, method = "simulate")
+```
+
+&lt;img src="index_files/figure-html/m1-appraise-1.svg" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+# Ocean chlorophyl-*a*
+
+
+```r
+m2 &lt;- gam(
+  list(
+    chl ~ s(lat, lon, bs = "sos", m = -1, k = 150) + # location
+      s(jul.day, bs = "cr", k = 20) +
+      s(bath, k = 10),
+    ~ s(lat, lon, bs = "sos", m = -1, k = 100) +     # power
+      s(jul.day, bs = "cr", k = 20) +
+      s(bath, k = 10),
+    ~ s(lat, lon, bs = "sos", m = -1, k = 100) +     # scale
+      s(jul.day, bs = "cr", k = 20) +
+      s(bath, k = 10)
+  ),
+  data = chl,
+  method = "REML",
+  control = ctrl,
+  family = twlss()
+)
+```
+
+
+---
+
+# Ocean chlorophyl-*a*
+
+
+```r
+overview(m2)
+```
+
+```
+## 
+## Generalized Additive Model with 9 terms
+## 
+##   term         type      k    edf statistic p.value 
+##   &lt;chr&gt;        &lt;chr&gt; &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;   
+## 1 s(lat,lon)   SOS     149 139.    14864.   &lt; 0.001 
+## 2 s(jul.day)   CRS      19  18.2    2672.   &lt; 0.001 
+## 3 s(bath)      TPRS      9   7.85    131.   &lt; 0.001 
+## 4 s.1(lat,lon) SOS      99  58.8     438.   &lt; 0.001 
+## 5 s.1(jul.day) CRS      19  15.2     304.   &lt; 0.001 
+## 6 s.1(bath)    TPRS      9   1.56      5.25 0.039308
+## 7 s.2(lat,lon) SOS      99  85.6    1695.   &lt; 0.001 
+## 8 s.2(jul.day) CRS      19  10.3     406.   &lt; 0.001 
+## 9 s.2(bath)    TPRS      9   7.11    247.   &lt; 0.001
+```
+
+---
+
+# Ocean chlorophyl-*a*
+
+
+```r
+appraise(m2, method = "simulate")
+```
+
+&lt;img src="index_files/figure-html/m2-appraise-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Ocean chlorophyl-*a*
+
+
+```r
+draw(m2, crs = crs, dist = 0.05, rug = FALSE)
+```
+
+&lt;img src="index_files/figure-html/m2-draw-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Ocean chlorophyl-*a*
+
+
+```r
+m1 |&gt;
+  smooth_estimates(select = "s(lat,lon)", n = 50) |&gt;
+  add_confint()
+```
+
+```
+## # A tibble: 2,500 × 9
+##    .smooth    .type .by   .estimate   .se   lat   lon .lower_ci .upper_ci
+##    &lt;chr&gt;      &lt;chr&gt; &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+##  1 s(lat,lon) SOS   &lt;NA&gt;     0.0770 0.247  30.2 -79.9    -0.407     0.561
+##  2 s(lat,lon) SOS   &lt;NA&gt;     0.0603 0.199  30.2 -76.6    -0.330     0.450
+##  3 s(lat,lon) SOS   &lt;NA&gt;    -0.178  0.223  30.2 -73.3    -0.616     0.259
+##  4 s(lat,lon) SOS   &lt;NA&gt;    -0.615  0.257  30.2 -70.1    -1.12     -0.110
+##  5 s(lat,lon) SOS   &lt;NA&gt;    -0.948  0.260  30.2 -66.8    -1.46     -0.438
+##  6 s(lat,lon) SOS   &lt;NA&gt;    -1.13   0.307  30.2 -63.5    -1.73     -0.531
+##  7 s(lat,lon) SOS   &lt;NA&gt;    -1.62   0.410  30.2 -60.2    -2.42     -0.817
+##  8 s(lat,lon) SOS   &lt;NA&gt;    -1.73   0.411  30.2 -56.9    -2.54     -0.928
+##  9 s(lat,lon) SOS   &lt;NA&gt;    -1.79   0.369  30.2 -53.6    -2.51     -1.07 
+## 10 s(lat,lon) SOS   &lt;NA&gt;    -1.87   0.338  30.2 -50.4    -2.53     -1.20 
+## # ℹ 2,490 more rows
+```
+
+---
+
+# Ocean chlorophyl-*a*
+
+
+```r
+# at what values of covariates to predict at
+ds &lt;- data_slice(
+  m2,
+  lat = evenly(lat, lower = 40, upper = 50, by = 0.5),
+  lon = evenly(lon, lower = 40, upper = 50, by = 0.5)
+)
+# which mode terms to include
+use &lt;- c("(Intercept)", "s(lat,lon)", "s.1(lat,lon)", "s.2(lat,lon)")
+# generate predictions
+fv &lt;- fitted_values(
+  m2,
+  data = ds,
+  terms = use
+)
+# average predicted chl-a over the grid cells
+fv |&gt;
+  filter(.parameter == "location") |&gt;
+  summarise(chl_a = mean(.fitted))
+```
+
+```
+##      chl_a
+## 1 2.289129
+```
+
+---
+
+# Ocean chlorophyl-*a*
+
+
+```r
+fs &lt;- fitted_samples(
+  m2,
+  data = ds,
+  terms = use,
+  n = 10000,
+  method = "gaussian",
+  unconditional = TRUE,
+  n_cores = 4,
+  seed = 342
+)
+```
+
+---
+
+# Ocean chlorophyl-*a*
+
+
+```r
+library("ggdist")
+fs |&gt;
+  group_by(.draw) |&gt;
+  summarise(chl_a = mean(.fitted)) |&gt;
+  median_qi()
+```
+
+```
+## # A tibble: 1 × 6
+##   chl_a .lower .upper .width .point .interval
+##   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;  &lt;chr&gt;    
+## 1  2.36   2.36   2.36   0.95 median qi
+```
+
+---
+
+# Some tracking-related GAM resources
+
+* Bravington et al (2021) [Variance Propagation for Density Surface Models](https://doi.org/10.1007/s13253-021-00438-2)
+
+    * DSMs involve a detection function (distance sampling) and a GAM
+
+    * Paper shows how to propagate uncertainty from detection function to the GAM
+
+---
+
+# Harbour porpoise
+
+
+
+
+
+
+
+&lt;img src="index_files/figure-html/plot-hp-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Some tracking-related GAM resources
+
+* Presence-only data
+    * Imhomogeneous Poisson Point Process
+    * Log-Gaussian Cox Process
+    * Dovers et al (2024) [Fitting log-Gaussian Cox processes using generalized additive model software](https://doi.org/10.1080/00031305.2024.2316725)
+    * Also `ppgam` package
+
+* Step selection
+    * Animal movement &amp; habitat preferences
+    * Klappstein *et al* (2024) [Step selection analysis with non-linear and random effects in mgcv](https://doi.org/10.1101/2024.01.05.574363)
+
+---
+class: inverse center middle subsection
+
+# Posteriors and prediction
+
+---
+
+# 🐡🐠🐟🦐 Species richness &amp; 🦐 biomass
+
+The example comes from trawl data from off the coast of Newfoundland and Labrador, Canada
+
+* Counts of species richness at each trawl location
+* Shrimp biomass at each trawl location
+* Annual trawls 2005&amp;ndash;2014
+
+---
+
+# 🐡🐠🐟🦐 Species richness
+
+.row[
+.col-6[
+
+```r
+shrimp &lt;- read_csv("data/trawl_nl.csv")
+```
+
+
+```r
+m_rich &lt;- gam(richness ~ s(year),
+              family = poisson,
+              method = "REML",
+              data = shrimp)
+```
+]
+.col-6[
+&lt;img src="index_files/figure-html/richness-violin-1.svg" style="display: block; margin: auto;" /&gt;
+]
+]
+
+---
+
+# 🐡🐠🐟🦐 Species richness
+
+
+```r
+draw(m_rich)
+```
+
+&lt;img src="index_files/figure-html/draw-richness-gam-1.svg" width="90%" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Spatio-temporal data
+
+🦐 biomass at each trawl
+
+&lt;img src="index_files/figure-html/biom-space-time-plot-1.png" style="display: block; margin: auto;" /&gt;
+---
+
+# Spatio-temporal model
+
+
+```r
+m_spt &lt;- gam(shrimp ~ te(x, y, year, d = c(2,1),
+                         bs = c('tp', 'cr'), k = c(20, 5)),
+             data = shrimp,
+             family = tw(),
+             method = "REML")
+```
+
+---
+
+# Predicting with `predict()`
+
+`plot.gam()` and `gratia::draw()` show the component functions of the model on the link scale
+
+Prediction allows us to evaluate the model at known values of covariates on the response scale
+
+Use the standard function `predict()`
+
+Provide `newdata` with a data frame of values of covariates
+
+---
+
+# `predict()`
+
+
+```r
+new_year &lt;- with(shrimp, tibble(year = seq(min(year), max(year), length.out = 100)))
+pred &lt;- predict(m_rich, newdata = new_year, se.fit = TRUE, type = 'link')
+pred &lt;- bind_cols(new_year, as_tibble(as.data.frame(pred)))
+pred
+```
+
+```
+## # A tibble: 100 × 3
+##     year   fit  se.fit
+##    &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;
+##  1 2005   3.05 0.0100 
+##  2 2005.  3.05 0.00901
+##  3 2005.  3.06 0.00830
+##  4 2005.  3.06 0.00792
+##  5 2005.  3.06 0.00786
+##  6 2005.  3.06 0.00807
+##  7 2006.  3.07 0.00844
+##  8 2006.  3.07 0.00887
+##  9 2006.  3.07 0.00926
+## 10 2006.  3.08 0.00955
+## # ℹ 90 more rows
+```
+
+---
+
+# `predict()` &amp;rarr; response scale
+
+
+```
+## # A tibble: 100 × 6
+##     year   fit  se.fit richness   lwr   upr
+##    &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1 2005   3.05 0.0100      21.1  20.8  21.4
+##  2 2005.  3.05 0.00901     21.2  20.9  21.5
+##  3 2005.  3.06 0.00830     21.2  20.9  21.5
+##  4 2005.  3.06 0.00792     21.3  21.0  21.6
+##  5 2005.  3.06 0.00786     21.4  21.1  21.6
+##  6 2005.  3.06 0.00807     21.4  21.1  21.7
+##  7 2006.  3.07 0.00844     21.5  21.2  21.8
+##  8 2006.  3.07 0.00887     21.6  21.3  21.9
+##  9 2006.  3.07 0.00926     21.6  21.3  22.0
+## 10 2006.  3.08 0.00955     21.7  21.4  22.0
+## # ℹ 90 more rows
+```
+
+---
+
+# `predict()` &amp;rarr; plot
+
+Tidy objects like this are easy to plot with `ggplot()`
+
+
+```r
+ggplot(pred, aes(x = year)) + scale_x_continuous(breaks = 2005:2014) +
+    geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2) +
+    geom_line(aes(y = richness)) + labs(y = "Species richness", x = NULL)
+```
+
+&lt;img src="index_files/figure-html/plot-predictions-richness-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# `predict()` for space and time
+
+This idea is very general;  spatiotemporal model needs a grid of x,y coordinates for each year
+
+
+```r
+sp_new &lt;- with(shrimp, expand.grid(x = evenly(x, n = 100), y = evenly(y, n = 100),
+                                   year = unique(year)))
+sp_pred &lt;- predict(m_spt, newdata = sp_new, se.fit = TRUE) # link scale is default
+sp_pred &lt;- bind_cols(as_tibble(sp_new), as_tibble(as.data.frame(sp_pred)))
+sp_pred
+```
+
+```
+## # A tibble: 100,000 × 5
+##          x        y  year   fit se.fit
+##      &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;
+##  1 428238. 5078244.  2005  3.34  1.06 
+##  2 436886. 5078244.  2005  3.32  1.06 
+##  3 445535. 5078244.  2005  3.31  1.05 
+##  4 454183. 5078244.  2005  3.29  1.04 
+##  5 462831. 5078244.  2005  3.26  1.03 
+##  6 471479. 5078244.  2005  3.24  1.02 
+##  7 480127. 5078244.  2005  3.21  1.01 
+##  8 488775. 5078244.  2005  3.18  1.00 
+##  9 497423. 5078244.  2005  3.15  0.994
+## 10 506071. 5078244.  2005  3.12  0.985
+## # ℹ 99,990 more rows
+```
+
+---
+
+# `predict()` &amp;rarr; response scale
+
+
+```r
+ilink &lt;- inv_link(m_spt)
+too_far &lt;- exclude.too.far(sp_pred$x, sp_pred$y, shrimp$x, shrimp$y, dist = 0.1)
+sp_pred &lt;- sp_pred %&gt;% mutate(biomass = ilink(fit),
+                              biomass = case_when(too_far ~ NA_real_,
+                                                  TRUE ~ biomass))
+sp_pred
+```
+
+```
+## # A tibble: 100,000 × 6
+##          x        y  year   fit se.fit biomass
+##      &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
+##  1 428238. 5078244.  2005  3.34  1.06     28.3
+##  2 436886. 5078244.  2005  3.32  1.06     27.8
+##  3 445535. 5078244.  2005  3.31  1.05     27.3
+##  4 454183. 5078244.  2005  3.29  1.04     26.7
+##  5 462831. 5078244.  2005  3.26  1.03     26.1
+##  6 471479. 5078244.  2005  3.24  1.02     25.5
+##  7 480127. 5078244.  2005  3.21  1.01     24.9
+##  8 488775. 5078244.  2005  3.18  1.00     24.2
+##  9 497423. 5078244.  2005  3.15  0.994    23.4
+## 10 506071. 5078244.  2005  3.12  0.985    22.6
+## # ℹ 99,990 more rows
+```
+
+---
+
+# `predict()` &amp;rarr; plot
+
+
+```r
+ggplot(sp_pred, aes(x = x, y = y, fill = biomass)) + geom_raster() +
+    scale_fill_viridis_c(option = "plasma") + facet_wrap(~ year, ncol = 5) + coord_equal()
+```
+
+&lt;img src="index_files/figure-html/spt-example-plot-1.png" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Visualizing the trend?
+
+We have this model
+
+.smaller[
+
+```
+## 
+## Family: Tweedie(p=1.686) 
+## Link function: log 
+## 
+## Formula:
+## shrimp ~ te(x, y, year, d = c(2, 1), bs = c("tp", "cr"), k = c(20, 
+##     5))
+## 
+## Estimated degrees of freedom:
+## 70.4  total = 71.38 
+## 
+## REML score: 19102.91
+```
+]
+
+How would you visualize the average change in biomass over time?
+
+---
+
+# Welcome back old friend
+
+One way is to  decompose the spatio-temporal function in main effects plus interaction
+
+
+```r
+m_ti &lt;- gam(shrimp ~ ti(x, y, year, d = c(2, 1), bs = c("tp", "cr"), k = c(20, 5)) +
+                s(x, y, bs = "tp", k = 20) +
+                s(year, bs = "cr", k = 5),
+            data = shrimp, family = tw, method = "REML")
+```
+
+and predict from the model using only the marginal effect of `s(year)`
+
+---
+
+# `predict()` with `exclude`
+
+.row[
+.col-6[
+We can exclude the spatial &amp; spatiotemporal terms from predictions using `exclude`
+
+**Step 1** run `gratia::smooths()` on model &amp; note the names of the smooth you *don't* want &amp;rarr;
+]
+.col-6[
+.smaller[
+
+```
+## [1] "ti(x,y,year)" "s(x,y)"       "s(year)"
+```
+]
+]
+]
+
+---
+
+# `predict()` with `exclude` &amp;mdash; Step 2 *predict*
+
+Prediction data only need dummy values for `x` and `y`
+
+
+```r
+ti_new &lt;- with(shrimp, expand.grid(x = mean(x), y = mean(y), year = evenly(year, n = 100)))
+
+ti_pred &lt;- predict(m_ti, newdata = ti_new, se.fit = TRUE,
+*                  exclude = c("ti(x,y,year)", "s(x,y)"))
+
+ti_pred &lt;- bind_cols(as_tibble(ti_new), as_tibble(as.data.frame(ti_pred))) %&gt;%
+    mutate(biomass = ilink(fit),
+           lwr = ilink(fit - (crit * se.fit)),
+           upr = ilink(fit + (crit * se.fit)))
+```
+
+`exclude` takes a character vector of terms to exclude &amp;mdash; `predict()` sets the contributions of those terms to 0
+
+Could also use `terms = "s(year)"` to select only the named smooths
+
+
+```r
+predict(m_ti, newdata = ti_new, se.fit = TRUE, terms = "s(year)")
+```
+
+---
+
+# `predict()` with `exclude`&amp;mdash; Step 3 *plot it!*
+
+
+```r
+ggplot(ti_pred, aes(x = year)) + geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3) +
+    geom_line(aes(y = biomass)) + labs(y = "Biomass", x = NULL)
+```
+
+&lt;img src="index_files/figure-html/plot-ti-marginal-trend-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Using `fitted_values()`
+
+
+```r
+ti_pred2 &lt;- fitted_values(m_ti, data = ti_new,
+                          scale = "response",
+*                         exclude = c("ti(x,y,year)", "s(x,y)"))
+
+ggplot(ti_pred2, aes(x = year)) + geom_ribbon(aes(ymin = .lower_ci, ymax = .upper_ci), alpha = 0.3) +
+  geom_line(aes(y = .fitted)) + labs(y = "Biomass", x = NULL)
+```
+
+&lt;img src="index_files/figure-html/predict-via-fitted-values-1.svg" width="70%" style="display: block; margin: auto;" /&gt;
+
+---
+class: inverse middle center subsection
+
+# Posterior simulation
+
+---
+
+# POsterior simulation
+
+.center[
+
+```r
+knitr::include_graphics("resources/miller-bayesian-gam-interpretation-fig.svg")
+```
+
+&lt;img src="resources/miller-bayesian-gam-interpretation-fig.svg" width="80%" style="display: block; margin: auto;" /&gt;
+]
+
+.smaller[
+Miller (2021) Bayesian Views of Generalized Additive Modelling. [*arXiv*:1902.01330v3](http://arxiv.org/abs/1902.01330v3)
+]
+
+
+---
+
+# Posterior distributions
+
+Each line is a draw from the *posterior distribution* of the smooth
+
+Remember the coefficients for each basis function?: `\(\beta_j\)`
+
+Together they are distributed *multivariate normal* with
+
+* mean vector given by `\(\hat{\beta}_j\)`
+* covariance matrix `\(\boldsymbol{\hat{V}}_{\beta}\)`
+
+`$$\text{MVN}(\boldsymbol{\hat{\beta}}, \boldsymbol{\hat{V}}_{\beta})$$`
+
+--
+
+The model as a whole has a posterior distribution too
+
+--
+
+We can simulate data from the model by taking draws from the posterior distribution
+
+---
+
+# Posterior simulation for a smooth
+
+Sounds fancy but it's only just slightly more complicated than using `rnorm()`
+
+To do this we need a few things:
+
+1. The vector of model parameters for the smooth, `\(\boldsymbol{\hat{\beta}}\)`
+2. The covariance matrix of those parameters, `\(\boldsymbol{\hat{V}}_{\beta}\)`
+3. A matrix `\(\boldsymbol{X}_p\)` that maps parameters to the linear predictor for the smooth
+
+`$$\boldsymbol{\hat{\eta}}_p = \boldsymbol{X}_p \boldsymbol{\hat{\beta}}$$`
+
+--
+
+Let's do this for `m_rich`
+
+---
+
+# Posterior sim for a smooth &amp;mdash; step 1
+
+The vector of model parameters for the smooth, `\(\boldsymbol{\hat{\beta}}\)`
+
+
+```r
+sm_year &lt;- get_smooth(m_rich, "s(year)") # extract the smooth object from model
+idx &lt;- gratia:::smooth_coef_indices(sm_year) # indices of the coefs for this smooth
+idx
+```
+
+```
+## [1]  2  3  4  5  6  7  8  9 10
+```
+
+```r
+beta &lt;- coef(m_rich)                     # vector of model parameters
+beta[idx]                                # coefs for this smooth
+```
+
+```
+##   s(year).1   s(year).2   s(year).3   s(year).4   s(year).5   s(year).6   s(year).7   s(year).8 
+## -0.17559264  1.13222927 -0.46532056  5.90630566  0.18400060 -1.09147043 -0.20021520 -0.44434784 
+##   s(year).9 
+## -0.02398653
+```
+
+---
+
+# Posterior sim for a smooth &amp;mdash; step 2
+
+The covariance matrix of the model parameters, `\(\boldsymbol{\hat{V}}_{\beta}\)`
+
+
+```r
+Vb &lt;- vcov(m_rich) # default is the bayesian covariance matrix
+Vb
+```
+
+.small[
+
+```r
+op &lt;- options(width = 170)
+Vb
+```
+
+```
+##               (Intercept)     s(year).1     s(year).2     s(year).3     s(year).4     s(year).5     s(year).6     s(year).7     s(year).8     s(year).9
+## (Intercept)  1.027059e-05  1.578864e-06 -9.032418e-06 -1.307231e-06 -4.622411e-05 -9.668346e-06  1.481563e-05  8.523791e-07  4.057120e-06  7.715888e-08
+## s(year).1    1.578864e-06  4.766242e-02 -1.705627e-01  1.280727e-01 -1.447873e-01  2.579066e-02 -7.928522e-02  1.444655e-02  3.437523e-02  6.254985e-03
+## s(year).2   -9.032418e-06 -1.705627e-01  7.441849e-01 -6.341764e-01  9.230513e-01 -3.008818e-01  5.476052e-01 -1.972615e-01 -1.370834e-01 -2.260069e-02
+## s(year).3   -1.307231e-06  1.280727e-01 -6.341764e-01  1.756373e+00 -1.488830e+00  8.995848e-01  2.440806e-02 -2.444633e-01  6.839307e-03 -2.921669e-03
+## s(year).4   -4.622411e-05 -1.447873e-01  9.230513e-01 -1.488830e+00  2.743191e+00 -2.018595e+00  1.612778e+00 -5.371137e-01 -1.362334e-01 -1.741728e-02
+## s(year).5   -9.668346e-06  2.579066e-02 -3.008818e-01  8.995848e-01 -2.018595e+00  2.276558e+00 -1.671047e+00  5.120318e-01  3.881950e-02 -4.407525e-03
+## s(year).6    1.481563e-05 -7.928522e-02  5.476052e-01  2.440806e-02  1.612778e+00 -1.671047e+00  2.357642e+00 -1.045468e+00 -1.807873e-01 -1.797243e-02
+## s(year).7    8.523791e-07  1.444655e-02 -1.972615e-01 -2.444633e-01 -5.371137e-01  5.120318e-01 -1.045468e+00  5.391215e-01  8.494867e-02  8.167830e-03
+## s(year).8    4.057120e-06  3.437523e-02 -1.370834e-01  6.839307e-03 -1.362334e-01  3.881950e-02 -1.807873e-01  8.494867e-02  3.836358e-02  6.579738e-03
+## s(year).9    7.715888e-08  6.254985e-03 -2.260069e-02 -2.921669e-03 -1.741728e-02 -4.407525e-03 -1.797243e-02  8.167830e-03  6.579738e-03  1.683112e-03
+```
+
+```r
+options(op)
+```
+]
+
+---
+
+# Posterior sim for a smooth &amp;mdash; step 3
+
+A matrix `\(\boldsymbol{X}_p\)` that maps parameters to the linear predictor for the smooth
+
+We get `\(\boldsymbol{X}_p\)` using the `predict()` method with `type = "lpmatrix"`
+
+
+```r
+new_year &lt;- with(shrimp, tibble(year = evenly(year, n = 100)))
+Xp &lt;- predict(m_rich, newdata = new_year, type = 'lpmatrix')
+dim(Xp)
+```
+
+```
+## [1] 100  10
+```
+
+---
+
+# Posterior sim for a smooth &amp;mdash; step 4
+
+Take only the columns of `\(\boldsymbol{X}_p\)` that are involved in the smooth of `year`
+
+
+```r
+Xp &lt;- Xp[, idx, drop = FALSE]
+dim(Xp)
+```
+
+```
+## [1] 100   9
+```
+
+---
+
+# Posterior sim for a smooth &amp;mdash; step 5
+
+Simulate parameters from the posterior distribution of the smooth of `year`
+
+
+```r
+set.seed(42)
+beta_sim &lt;- rmvn(n = 20, beta[idx], Vb[idx, idx, drop = FALSE])
+dim(beta_sim)
+```
+
+```
+## [1] 20  9
+```
+
+Simulating many sets (20) of new model parameters from the estimated parameters and their uncertainty (covariance)
+
+Result is a matrix where each row is a set of new model parameters, each consistent with the fitted smooth
+
+---
+
+# Posterior sim for a smooth &amp;mdash; step 6
+
+.row[
+.col-6[
+Form `\(\boldsymbol{\hat{\eta}}_p\)`, the posterior draws for the smooth
+
+
+```r
+sm_draws &lt;- Xp %*% t(beta_sim)
+dim(sm_draws)
+```
+
+```
+## [1] 100  20
+```
+
+```r
+matplot(sm_draws, type = 'l')
+```
+
+A bit of rearranging is needed to plot with `ggplot()`
+]
+
+.col-6[
+&lt;img src="index_files/figure-html/richness-posterior-draws-1.svg" style="display: block; margin: auto;" /&gt;
+]
+
+]
+
+--
+
+Or use `smooth_samples()`
+
+---
+
+# Posterior sim for a smooth &amp;mdash; steps 1&amp;ndash;6
+
+
+```r
+sm_post &lt;- smooth_samples(m_rich, 's(year)', n = 20, seed = 42)
+draw(sm_post)
+```
+
+&lt;img src="index_files/figure-html/plot-posterior-smooths-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Posterior simulation from the model
+
+Simulating from the posterior distribution of the model requires 1 modification of the recipe for a smooth and one extra step
+
+We want to simulate new values for all the parameters in the model, not just the ones involved in a particular smooth
+
+--
+
+Additionally, we could simulate *new response data* from the model and the simulated parameters (**not shown** below)
+
+---
+
+# Posterior simulation from the model
+
+
+```r
+beta &lt;- coef(m_rich)   # vector of model parameters
+Vb &lt;- vcov(m_rich)     # default is the bayesian covariance matrix
+Xp &lt;- predict(m_rich, type = "lpmatrix")
+set.seed(42)
+beta_sim &lt;- rmvn(n = 1000, beta, Vb) # simulate parameters
+eta_p &lt;- Xp %*% t(beta_sim)        # form linear predictor values
+mu_p &lt;- inv_link(m_rich)(eta_p)    # apply inverse link function
+
+mean(mu_p[1, ]) # mean of posterior for the first observation in the data
+```
+
+```
+## [1] 21.10123
+```
+
+```r
+quantile(mu_p[1, ], probs = c(0.025, 0.975))
+```
+
+```
+##     2.5%    97.5% 
+## 20.70134 21.49528
+```
+
+---
+
+# Posterior simulation from the model
+
+
+```r
+ggplot(tibble(richness = mu_p[587, ]), aes(x = richness)) +
+    geom_histogram() + labs(title = "Posterior richness for obs #587")
+```
+
+&lt;img src="index_files/figure-html/posterior-sim-model-hist-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Posterior simulation from the model
+
+Or easier using `fitted_samples()`
+
+
+```r
+rich_post &lt;- fitted_samples(m_rich, n = 1000, data = shrimp, seed = 42)
+ggplot(filter(rich_post, .row == 587), aes(x = .fitted)) +
+    geom_histogram() + labs(title = "Posterior richness for obs #587", x = "Richness")
+```
+
+&lt;img src="index_files/figure-html/richness-fitted-samples-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Why is this of interest?
+
+Say you wanted to get an estimate for the total biomass of shrimp over the entire region of the trawl survey for 2007
+
+You could predict for the spatial grid for `year == 2007` using code shown previously and sum the predicted biomass values over all the grid cells
+
+--
+
+**Easy**
+
+--
+
+But what if you also wanted the uncertainty in that estimate?
+
+--
+
+**Hard**
+
+--
+
+**Math** 😱😱 "something, something, delta method, something" 😱😱
+
+---
+
+# Posterior simulation makes this easy
+
+1. Take a draw from the posterior distribution of the model
+2. Use the posterior draw to predict biomass for each grid cell
+3. Sum the predicted biomass values over all grid cells
+4. Store the total biomass value
+5. Repeat 1&amp;ndash;4 a lot of times to get posterior distribution for total biomass
+6. Summarize the total biomass posterior
+    * Estimated total biomass is the mean of the total biomass posterior
+	* Uncertainty is some lower/upper tail probability quantiles of the posterior
+
+---
+
+# Let's do it
+
+
+```r
+sp_new &lt;- with(shrimp, expand.grid(x = evenly(x, n = 100), y = evenly(y, n = 100),
+                                   year = 2007))
+Xp &lt;- predict(m_spt, newdata = sp_new, type = "lpmatrix")
+
+## work out now which points are too far now
+too_far &lt;- exclude.too.far(sp_new$x, sp_new$y, shrimp$x, shrimp$y, dist = 0.1)
+
+beta &lt;- coef(m_spt)                  # vector of model parameters
+Vb &lt;- vcov(m_spt)                    # default is the bayesian covariance matrix
+set.seed(42)
+beta_sim &lt;- rmvn(n = 1000, beta, Vb) # simulate parameters
+eta_p &lt;- Xp %*% t(beta_sim)          # form linear predictor values
+mu_p &lt;- inv_link(m_spt)(eta_p)       # apply inverse link function
+```
+
+Columns of `mu_p` contain the expected or mean biomass for each grid cell per area trawled
+
+Sum the columns of `mu_p` and summarize
+
+---
+
+# Summarize the expected biomass
+
+
+```r
+mu_copy &lt;- mu_p              # copy mu_p
+mu_copy[too_far, ] &lt;- NA     # set cells too far from data to be NA
+total_biomass &lt;- colSums(mu_copy, na.rm = TRUE)  # total biomass over the region
+
+mean(total_biomass)
+```
+
+```
+## [1] 1561644
+```
+
+```r
+quantile(total_biomass, probs = c(0.025, 0.975))
+```
+
+```
+##    2.5%   97.5% 
+## 1404871 1750293
+```
+
+---
+
+# Summarize the expected biomass
+
+
+```r
+ggplot(tibble(biomass = total_biomass), aes(x = biomass)) +
+    geom_histogram()
+```
+
+&lt;img src="index_files/figure-html/total-biomass-histogram-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# With `fitted_samples()`
+
+.row[
+
+.col-7[
+
+```r
+bio_post &lt;- fitted_samples(m_spt, n = 1000,
+                           data = sp_new[!too_far, ],
+                           seed = 42) %&gt;%
+    group_by(.draw) %&gt;%
+    summarise(total = sum(.fitted),
+              .groups = "drop_last")
+
+with(bio_post, mean(total))
+```
+
+```
+## [1] 6910344
+```
+
+```r
+with(bio_post, quantile(total, probs = c(0.025, 0.975)))
+```
+
+```
+##    2.5%   97.5% 
+## 6910344 6910344
+```
+]
+
+.col-5[
+
+```r
+ggplot(bio_post, aes(x = total)) +
+    geom_histogram() +
+    labs(x = "Total biomass")
+```
+
+&lt;img src="index_files/figure-html/biomass-fitted-samples-plot-1.svg" style="display: block; margin: auto;" /&gt;
+
+]
+
+]
+
+---
+
+# Soap films
+
+---
+
+# Soap film smooths
+
+
+
+---
+
+# Soap film smooths
+
+&lt;img src="index_files/figure-html/plot-fs-boundary-figure-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Soap film smooths
+
+
+
+---
+
+# Soap film smooths
+
+&lt;img src="index_files/figure-html/plot-comeston-data-draw-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Soap film smooths
+
+
+
+---
+
+# Soap film smooths
+
+
+```
+## 
+## Family: gaussian 
+## Link function: identity 
+## 
+## Formula:
+## -depth ~ s(os_x, os_y, k = 60)
+## 
+## Parametric coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept) -5.35075    0.07813  -68.49   &lt;2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Approximate significance of smooth terms:
+##                edf Ref.df     F p-value    
+## s(os_x,os_y) 41.45  51.06 19.08  &lt;2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## R-sq.(adj) =  0.787   Deviance explained =   82%
+## -REML = 491.88  Scale est. = 1.6175    n = 265
+```
+
+---
+
+# Soap film smooths
+
+&lt;img src="index_files/figure-html/plot-tprs-comeston-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Soap film knot placement
+
+
+
+---
+
+# Soap film knot placement
+
+&lt;img src="resources/soap-film-smoothers-plot-soap-film-set-up-1.png" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Soap film model
+
+
+
+
+```
+## 
+## Family: gaussian 
+## Link function: identity 
+## 
+## Formula:
+## -depth ~ s(os_x, os_y, bs = "so", xt = list(bnd = bound))
+## 
+## Parametric coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)   -3.275      0.204  -16.05   &lt;2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Approximate significance of smooth terms:
+##                edf Ref.df     F p-value    
+## s(os_x,os_y) 27.27     38 19.95  &lt;2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## R-sq.(adj) =  0.742   Deviance explained = 76.8%
+## -REML = 501.32  Scale est. = 1.9607    n = 265
+```
+
+---
+
+# Soap film `draw()`
+
+&lt;img src="index_files/figure-html/soap-film-plot-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Soap film fitted values
+
+
+
+---
+
+# Fitted soap film smooth
+
+&lt;img src="index_files/figure-html/soap-film-fv-plot-1.svg" style="display: block; margin: auto;" /&gt;
+
+---
+
+# Alternatives to soap films?
+
+* For very irregular areas Dave Miller's generalized distance splines in `msg` package (Github) might be better
+
+Miller &amp; Wood (2014) [Finite area smoothing with generalized distance splines](https://doi.org/10.1007/s10651-014-0277-4)
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
