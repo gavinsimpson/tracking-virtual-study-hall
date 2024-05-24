@@ -31,14 +31,13 @@ class: inverse, middle, left, my-title-slide, title-slide
 
 ---
 
-
-
-
-
-
-
----
 class: inverse middle center huge-subsection
+
+
+
+
+
+
 
 # GAMs
 
@@ -116,7 +115,7 @@ library("readr")
 library("dplyr")
 URL &lt;-  "https://bit.ly/hadcrutv4"
 gtemp &lt;- read_table(URL, col_types = 'nnnnnnnnnnnn', col_names = FALSE) |&gt;
-    select(num_range('X', 1:2)) %&gt;% setNames(nm = c('Year', 'Temperature'))
+  select(num_range('X', 1:2)) %&gt;% setNames(nm = c('Year', 'Temperature'))
 ```
 
 [File format](https://www.metoffice.gov.uk/hadobs/hadcrut4/data/current/series_format.html)
@@ -278,8 +277,6 @@ gam(Temperature ~ s(Year, k = 10), data = gtemp, method = 'REML')
 
 # Generalized additive models
 
-PAMMs are a special case of the generalized additive model (GAM)
-
 A GAM is a model where the effects of covariates can be represented as smooth functions learned from the data
 
 `\begin{align*}
@@ -297,13 +294,6 @@ The smooth functions `\(f_j()\)` are set up as penalized splines
 
 &lt;img src="index_files/figure-html/basis-functions-1.svg" style="display: block; margin: auto;" /&gt;
 
-???
-
-Splines are built up from basis functions
-
-Here I'm showing a cubic regression spline basis with 10 knots/functions
-
-We weight each basis function to get a spline. Here all the basis functions have the same weight so they would fit a horizontal line
 
 ---
 
@@ -311,13 +301,7 @@ We weight each basis function to get a spline. Here all the basis functions have
 
 
 
-.center[![](resources/basis-fun-anim.gif)]
-
-???
-
-But if we choose different weights we get more wiggly spline
-
-Each of the splines I showed you earlier are all generated from the same basis functions just using different weights
+&lt;img src="resources/basis-fun-anim.gif" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -325,13 +309,12 @@ Each of the splines I showed you earlier are all generated from the same basis f
 
 
 
-.center[
-  ![](resources/gam-crs-animation.gif)
-]
+&lt;img src="resources/gam-crs-animation.gif" style="display: block; margin: auto;" /&gt;
 
 ???
 
 Fitting a GAM involves finding the weights for the basis functions that produce a spline that fits the data best, subject to some constraints
+
 ---
 class: inverse middle center big-subsection
 
@@ -381,7 +364,6 @@ draw(m)
 
 ```r
 df &lt;- data_sim("eg1", n = 1000, seed = 42)
-# df
 
 m_sim &lt;- gam(y ~ s(x0) + s(x1) + s(x2) + s(x3),
   data = df, method = "REML")
@@ -439,9 +421,9 @@ Posterior simulation
 
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chlorophyll-*a* &amp;mdash; setup
 
-Model Chlorophyl-*a* in ocean samples
+Model chlorophyll-*a* in ocean samples
 
 
 ```r
@@ -458,12 +440,14 @@ data(chl, package = "gamair")
 
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chlorophyll-*a*
+
+Use a spline on the sphere basis `bs = "sos"` for spatial smooth
 
 
 ```r
 ctrl &lt;- gam.control(nthreads = 4)
-m1 &lt;- gam(
+chl_m1 &lt;- gam(
   chl ~ s(lat, lon, bs = "sos", m = -1, k = 150) +
     s(jul.day, bs = "cr", k = 20) +
     s(bath, k = 10),
@@ -476,11 +460,13 @@ m1 &lt;- gam(
 
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chlorophyll-*a*
+
+Model overview is tidy summary of the model &amp;mdash; uses `summary.gam()` under the hood
 
 
 ```r
-overview(m1)
+overview(chl_m1)
 ```
 
 ```
@@ -496,35 +482,36 @@ overview(m1)
 
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chlorophyll-*a* &amp;mdash; `draw()`
 
 
 ```r
-crs &lt;- "+proj=ortho +lat_0=20 +lon_0=-37"
-draw(m1, crs = crs, dist = 0.05, rug = FALSE)
+crs &lt;- "+proj=ortho +lat_0=20 +lon_0=-37" # centre on -37 longitude
+draw(chl_m1, crs = crs, dist = 0.05, rug = FALSE)
 ```
 
 &lt;img src="index_files/figure-html/draw-chl-model-1.svg" style="display: block; margin: auto;" /&gt;
 
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chlorophyll-*a* &amp;mdash; model checking
 
 
 ```r
-appraise(m1, method = "simulate")
+appraise(chl_m1, method = "simulate")
 ```
 
-&lt;img src="index_files/figure-html/m1-appraise-1.svg" style="display: block; margin: auto;" /&gt;
-
+&lt;img src="index_files/figure-html/chl-m1-appraise-1.svg" style="display: block; margin: auto;" /&gt;
 
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chlorophyll-*a* &amp;mdash; GAMLSS
+
+Tweedie LSS model with 3 linear predictors
 
 
 ```r
-m2 &lt;- gam(
+chl_m2 &lt;- gam(
   list(
     chl ~ s(lat, lon, bs = "sos", m = -1, k = 150) + # location
       s(jul.day, bs = "cr", k = 20) +
@@ -543,14 +530,13 @@ m2 &lt;- gam(
 )
 ```
 
-
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chlorophyll-*a*
 
 
 ```r
-overview(m2)
+overview(chl_m2)
 ```
 
 ```
@@ -572,33 +558,33 @@ overview(m2)
 
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chlorophyll-*a* &amp;mdash; model checking
 
 
 ```r
-appraise(m2, method = "simulate")
+appraise(chl_m2, method = "simulate")
 ```
 
-&lt;img src="index_files/figure-html/m2-appraise-1.svg" style="display: block; margin: auto;" /&gt;
+&lt;img src="index_files/figure-html/chl-m2-appraise-1.svg" style="display: block; margin: auto;" /&gt;
 
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chlorophyll-*a*
 
 
 ```r
-draw(m2, crs = crs, dist = 0.05, rug = FALSE)
+draw(chl_m2, crs = crs, dist = 0.05, rug = FALSE)
 ```
 
-&lt;img src="index_files/figure-html/m2-draw-1.svg" style="display: block; margin: auto;" /&gt;
+&lt;img src="index_files/figure-html/m2-draw-1.svg" width="65%" style="display: block; margin: auto;" /&gt;
 
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chlorophyll-*a*
 
 
 ```r
-m1 |&gt;
+chl_m2 |&gt;
   smooth_estimates(select = "s(lat,lon)", n = 50) |&gt;
   add_confint()
 ```
@@ -607,93 +593,137 @@ m1 |&gt;
 ## # A tibble: 2,500 × 9
 ##    .smooth    .type .by   .estimate   .se   lat   lon .lower_ci .upper_ci
 ##    &lt;chr&gt;      &lt;chr&gt; &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
-##  1 s(lat,lon) SOS   &lt;NA&gt;     0.0770 0.247  30.2 -79.9    -0.407     0.561
-##  2 s(lat,lon) SOS   &lt;NA&gt;     0.0603 0.199  30.2 -76.6    -0.330     0.450
-##  3 s(lat,lon) SOS   &lt;NA&gt;    -0.178  0.223  30.2 -73.3    -0.616     0.259
-##  4 s(lat,lon) SOS   &lt;NA&gt;    -0.615  0.257  30.2 -70.1    -1.12     -0.110
-##  5 s(lat,lon) SOS   &lt;NA&gt;    -0.948  0.260  30.2 -66.8    -1.46     -0.438
-##  6 s(lat,lon) SOS   &lt;NA&gt;    -1.13   0.307  30.2 -63.5    -1.73     -0.531
-##  7 s(lat,lon) SOS   &lt;NA&gt;    -1.62   0.410  30.2 -60.2    -2.42     -0.817
-##  8 s(lat,lon) SOS   &lt;NA&gt;    -1.73   0.411  30.2 -56.9    -2.54     -0.928
-##  9 s(lat,lon) SOS   &lt;NA&gt;    -1.79   0.369  30.2 -53.6    -2.51     -1.07 
-## 10 s(lat,lon) SOS   &lt;NA&gt;    -1.87   0.338  30.2 -50.4    -2.53     -1.20 
+##  1 s(lat,lon) SOS   &lt;NA&gt;    -0.0582 0.475  30.2 -79.9    -0.989    0.873 
+##  2 s(lat,lon) SOS   &lt;NA&gt;    -0.118  0.312  30.2 -76.6    -0.729    0.493 
+##  3 s(lat,lon) SOS   &lt;NA&gt;    -0.378  0.239  30.2 -73.3    -0.847    0.0904
+##  4 s(lat,lon) SOS   &lt;NA&gt;    -0.788  0.212  30.2 -70.1    -1.20    -0.373 
+##  5 s(lat,lon) SOS   &lt;NA&gt;    -1.11   0.192  30.2 -66.8    -1.48    -0.730 
+##  6 s(lat,lon) SOS   &lt;NA&gt;    -1.42   0.249  30.2 -63.5    -1.91    -0.932 
+##  7 s(lat,lon) SOS   &lt;NA&gt;    -1.95   0.307  30.2 -60.2    -2.55    -1.35  
+##  8 s(lat,lon) SOS   &lt;NA&gt;    -2.04   0.296  30.2 -56.9    -2.62    -1.46  
+##  9 s(lat,lon) SOS   &lt;NA&gt;    -2.03   0.256  30.2 -53.6    -2.54    -1.53  
+## 10 s(lat,lon) SOS   &lt;NA&gt;    -2.06   0.227  30.2 -50.4    -2.50    -1.61  
 ## # ℹ 2,490 more rows
 ```
 
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chlorophyll-*a* &amp;mdash; using the model
+
+What is the average chlorophyll-*a* in a box of the ocean 40&amp;ndash;50&amp;deg; N, 40&amp;ndash;50&amp;deg; W?
+
+--
+
+To answer this note
+
+1. we don't (in this data set) have the ocean depth at each point in the box,
+2. we want to ignore the day of year (`jul.day`) effect
+
+So we'll only use the three spatial smooths &amp; the intercept when predicting
+
+---
+
+# Ocean chlorophyll-*a* &amp;mdash; using the model
 
 
 ```r
 # at what values of covariates to predict at
 ds &lt;- data_slice(
-  m2,
+  chl_m2,
   lat = evenly(lat, lower = 40, upper = 50, by = 0.5),
-  lon = evenly(lon, lower = 40, upper = 50, by = 0.5)
+  lon = evenly(lon, lower = -50, upper = -40, by = 0.5)
 )
-# which mode terms to include
+# which model terms to include
 use &lt;- c("(Intercept)", "s(lat,lon)", "s.1(lat,lon)", "s.2(lat,lon)")
 # generate predictions
 fv &lt;- fitted_values(
-  m2,
+  chl_m2,
   data = ds,
   terms = use
 )
 # average predicted chl-a over the grid cells
 fv |&gt;
   filter(.parameter == "location") |&gt;
-  summarise(chl_a = mean(.fitted))
+  dplyr::summarise(chl_a = mean(.fitted))
 ```
 
 ```
-##      chl_a
-## 1 2.289129
+## # A tibble: 1 × 1
+##   chl_a
+##   &lt;dbl&gt;
+## 1  1.07
 ```
 
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chlorophyll-*a* &amp;mdash; using the model
+
+What is the average chlorophyll-*a* in a box of the ocean 40&amp;ndash;50&amp;deg; N, 40&amp;ndash;50&amp;deg; W?
+
+--
+
+Answer:
+
+```
+## # A tibble: 1 × 1
+##   chl_a
+##   &lt;dbl&gt;
+## 1  1.07
+```
+
+--
+
+What about the uncertainty in that estimate?
+
+---
+
+# Ocean chl-*a* &amp;mdash; posterior simulation
+
+Simulate large number of draws from the posterior
 
 
 ```r
 fs &lt;- fitted_samples(
-  m2,
-  data = ds,
-  terms = use,
-  n = 10000,
-  method = "gaussian",
-  unconditional = TRUE,
-  n_cores = 4,
-  seed = 342
+  chl_m2,
+  data = ds,            # where to predict; our box
+  terms = use,          # include only these model terms
+  n = 10000,            # how many posterior samples?
+  method = "gaussian",  # Gaussian approximation is default
+  unconditional = TRUE, # include uncertainty for unkown smoothing parameters
+  n_cores = 4,          # use more cores for RNG
+  seed = 342            # stochastic, so set a seed
 )
 ```
 
 ---
 
-# Ocean chlorophyl-*a*
+# Ocean chl-*a* &amp;mdash; posterior simulation
+
+Repeat the _same_ `dplyr` code to average `\(\widehat{\mathtt{chl}}_i\)` over the box
+
+Only difference is we do this separately for each posterior sample (`.draw`) &amp; then we summarise posterior `median_qi()`
 
 
 ```r
-library("ggdist")
+library("ggdist")                    # for median_qi()
 fs |&gt;
-  group_by(.draw) |&gt;
-  summarise(chl_a = mean(.fitted)) |&gt;
-  median_qi()
+  group_by(.draw) |&gt;                 # do averaging for each posterior sample
+  dplyr::summarise(chl_a = mean(.fitted)) |&gt;
+  median_qi()                        # median and 0.025 &amp; 0.975 quantiles
 ```
 
 ```
 ## # A tibble: 1 × 6
 ##   chl_a .lower .upper .width .point .interval
 ##   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;  &lt;chr&gt;    
-## 1  2.36   2.36   2.36   0.95 median qi
+## 1  1.07  0.870   1.33   0.95 median qi
 ```
 
 ---
 
 # Some tracking-related GAM resources
 
-* Bravington et al (2021) [Variance Propagation for Density Surface Models](https://doi.org/10.1007/s13253-021-00438-2)
+* Bravington _et al_ (2021) [Variance Propagation for Density Surface Models](https://doi.org/10.1007/s13253-021-00438-2)
 
     * DSMs involve a detection function (distance sampling) and a GAM
 
@@ -702,6 +732,8 @@ fs |&gt;
 ---
 
 # Harbour porpoise
+
+Example from Bravington _et al_ (2021)
 
 
 
@@ -729,6 +761,12 @@ fs |&gt;
 class: inverse center middle subsection
 
 # Posteriors and prediction
+
+---
+
+# Posteriors and prediction
+
+The following slides explain what's going on inside `fitted_values()`, `fitted_samples()`, and related posterior sampling functions.
 
 ---
 
@@ -841,6 +879,15 @@ pred
 # `predict()` &amp;rarr; response scale
 
 
+```r
+ilink &lt;- inv_link(m_rich)                         # inverse link function
+crit &lt;- qnorm((1 - 0.89) / 2, lower.tail = FALSE) # or just `crit &lt;- 2`
+pred &lt;- mutate(pred, richness = ilink(fit),
+               lwr = ilink(fit - (crit * se.fit)), # lower...
+               upr = ilink(fit + (crit * se.fit))) # upper credible interval
+pred
+```
+
 ```
 ## # A tibble: 100 × 6
 ##     year   fit  se.fit richness   lwr   upr
@@ -923,16 +970,16 @@ sp_pred
 ## # A tibble: 100,000 × 6
 ##          x        y  year   fit se.fit biomass
 ##      &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
-##  1 428238. 5078244.  2005  3.34  1.06     28.3
-##  2 436886. 5078244.  2005  3.32  1.06     27.8
-##  3 445535. 5078244.  2005  3.31  1.05     27.3
-##  4 454183. 5078244.  2005  3.29  1.04     26.7
-##  5 462831. 5078244.  2005  3.26  1.03     26.1
-##  6 471479. 5078244.  2005  3.24  1.02     25.5
-##  7 480127. 5078244.  2005  3.21  1.01     24.9
-##  8 488775. 5078244.  2005  3.18  1.00     24.2
-##  9 497423. 5078244.  2005  3.15  0.994    23.4
-## 10 506071. 5078244.  2005  3.12  0.985    22.6
+##  1 428238. 5078244.  2005  3.34  1.06       NA
+##  2 436886. 5078244.  2005  3.32  1.06       NA
+##  3 445535. 5078244.  2005  3.31  1.05       NA
+##  4 454183. 5078244.  2005  3.29  1.04       NA
+##  5 462831. 5078244.  2005  3.26  1.03       NA
+##  6 471479. 5078244.  2005  3.24  1.02       NA
+##  7 480127. 5078244.  2005  3.21  1.01       NA
+##  8 488775. 5078244.  2005  3.18  1.00       NA
+##  9 497423. 5078244.  2005  3.15  0.994      NA
+## 10 506071. 5078244.  2005  3.12  0.985      NA
 ## # ℹ 99,990 more rows
 ```
 
@@ -955,6 +1002,10 @@ ggplot(sp_pred, aes(x = x, y = y, fill = biomass)) + geom_raster() +
 We have this model
 
 .smaller[
+
+```r
+m_spt
+```
 
 ```
 ## 
@@ -983,7 +1034,7 @@ One way is to  decompose the spatio-temporal function in main effects plus inter
 
 ```r
 m_ti &lt;- gam(shrimp ~ ti(x, y, year, d = c(2, 1), bs = c("tp", "cr"), k = c(20, 5)) +
-                s(x, y, bs = "tp", k = 20) +
+              s(x, y, bs = "tp", k = 20) +
                 s(year, bs = "cr", k = 5),
             data = shrimp, family = tw, method = "REML")
 ```
@@ -1003,6 +1054,10 @@ We can exclude the spatial &amp; spatiotemporal terms from predictions using `ex
 .col-6[
 .smaller[
 
+```r
+smooths(m_ti)
+```
+
 ```
 ## [1] "ti(x,y,year)" "s(x,y)"       "s(year)"
 ```
@@ -1014,7 +1069,7 @@ We can exclude the spatial &amp; spatiotemporal terms from predictions using `ex
 
 # `predict()` with `exclude` &amp;mdash; Step 2 *predict*
 
-Prediction data only need dummy values for `x` and `y`
+Prediction data only needs dummy values for `x` and `y`
 
 
 ```r
@@ -1031,11 +1086,11 @@ ti_pred &lt;- bind_cols(as_tibble(ti_new), as_tibble(as.data.frame(ti_pred))) %&
 
 `exclude` takes a character vector of terms to exclude &amp;mdash; `predict()` sets the contributions of those terms to 0
 
-Could also use `terms = "s(year)"` to select only the named smooths
+Could also use `terms` to select only the named terms
 
 
 ```r
-predict(m_ti, newdata = ti_new, se.fit = TRUE, terms = "s(year)")
+predict(m_ti, newdata = ti_new, se.fit = TRUE, terms = c("(Intercept)", "s(year)"))
 ```
 
 ---
@@ -1073,7 +1128,7 @@ class: inverse middle center subsection
 
 ---
 
-# POsterior simulation
+# Posterior simulation
 
 .center[
 
@@ -1138,7 +1193,7 @@ The vector of model parameters for the smooth, `\(\boldsymbol{\hat{\beta}}\)`
 
 
 ```r
-sm_year &lt;- get_smooth(m_rich, "s(year)") # extract the smooth object from model
+sm_year &lt;- get_smooth(m_rich, "s(year)")     # extract the smooth object from model
 idx &lt;- gratia:::smooth_coef_indices(sm_year) # indices of the coefs for this smooth
 idx
 ```
@@ -1148,8 +1203,8 @@ idx
 ```
 
 ```r
-beta &lt;- coef(m_rich)                     # vector of model parameters
-beta[idx]                                # coefs for this smooth
+beta &lt;- coef(m_rich)                         # vector of model parameters
+beta[idx]                                    # coefs for this smooth
 ```
 
 ```
@@ -1173,11 +1228,6 @@ Vb
 
 .small[
 
-```r
-op &lt;- options(width = 170)
-Vb
-```
-
 ```
 ##               (Intercept)     s(year).1     s(year).2     s(year).3     s(year).4     s(year).5     s(year).6     s(year).7     s(year).8     s(year).9
 ## (Intercept)  1.027059e-05  1.578864e-06 -9.032418e-06 -1.307231e-06 -4.622411e-05 -9.668346e-06  1.481563e-05  8.523791e-07  4.057120e-06  7.715888e-08
@@ -1191,17 +1241,13 @@ Vb
 ## s(year).8    4.057120e-06  3.437523e-02 -1.370834e-01  6.839307e-03 -1.362334e-01  3.881950e-02 -1.807873e-01  8.494867e-02  3.836358e-02  6.579738e-03
 ## s(year).9    7.715888e-08  6.254985e-03 -2.260069e-02 -2.921669e-03 -1.741728e-02 -4.407525e-03 -1.797243e-02  8.167830e-03  6.579738e-03  1.683112e-03
 ```
-
-```r
-options(op)
-```
 ]
 
 ---
 
 # Posterior sim for a smooth &amp;mdash; step 3
 
-A matrix `\(\boldsymbol{X}_p\)` that maps parameters to the linear predictor for the smooth
+A matrix `\(\boldsymbol{X}_p\)` maps parameters to the linear predictor for the smooth
 
 We get `\(\boldsymbol{X}_p\)` using the `predict()` method with `type = "lpmatrix"`
 
@@ -1480,8 +1526,8 @@ ggplot(tibble(biomass = total_biomass), aes(x = biomass)) +
 ```r
 bio_post &lt;- fitted_samples(m_spt, n = 1000,
                            data = sp_new[!too_far, ],
-                           seed = 42) %&gt;%
-    group_by(.draw) %&gt;%
+                           seed = 42) |&gt;
+    group_by(.draw) |&gt;
     summarise(total = sum(.fitted),
               .groups = "drop_last")
 
@@ -1489,7 +1535,7 @@ with(bio_post, mean(total))
 ```
 
 ```
-## [1] 6910344
+## [1] 1561644
 ```
 
 ```r
@@ -1498,7 +1544,7 @@ with(bio_post, quantile(total, probs = c(0.025, 0.975)))
 
 ```
 ##    2.5%   97.5% 
-## 6910344 6910344
+## 1404871 1750293
 ```
 ]
 
@@ -1517,14 +1563,39 @@ ggplot(bio_post, aes(x = total)) +
 ]
 
 ---
+class: inverse center middle subsection
 
 # Soap films
+
+---
+
+# Soap films
+
+For the narrative description of what is going on in this example, see [my blog post](https://fromthebottomoftheheap.net/2016/03/27/soap-film-smoothers/) on soap film smooths, from where the code below was sourced &amp; modernified a little
 
 ---
 
 # Soap film smooths
 
 
+```r
+fsb &lt;- fs.boundary()
+m &lt;- 300
+n &lt;- 150 
+xm &lt;- seq(-1, 4, length = m)
+yn &lt;- seq(-1, 1, length = n)
+xx &lt;- rep(xm, n)
+yy &lt;- rep(yn, rep(m, n))
+tru &lt;- matrix(fs.test(xx, yy), m, n) ## truth
+truth &lt;- data.frame(x = xx, y = yy, value = as.vector(tru))
+
+p &lt;- ggplot(truth, aes(x = x, y = y)) +
+  geom_raster(aes(fill = value)) +
+  geom_contour(aes(z = value), binwidth = 0.5, colour = "white") +
+  geom_path(data = as.data.frame(fsb), aes(x = x, y = y)) +
+  scale_fill_viridis(na.value = NA) +
+  theme(legend.position = "top", legend.key.width = unit(2.5, "cm"))
+```
 
 ---
 
@@ -1534,26 +1605,47 @@ ggplot(bio_post, aes(x = total)) +
 
 ---
 
-# Soap film smooths
+# Soap films &amp;mdash; wrong way
 
 
+```r
+library("sf")
+outline &lt;- read_sf("data/42721_Cosmeston_Lake_lake_polyline.shp")
+depth &lt;- read_sf("data/d17_42721_xyz.shp")
+
+come_p &lt;- ggplot(outline) +
+  geom_sf() +
+  geom_sf(data = depth, aes(colour = depth)) +
+  coord_sf() +
+  labs(y = "Northing", x = "Easting") +
+  scale_color_viridis()
+```
 
 ---
 
-# Soap film smooths
+# Soap film smooths &amp;mdash; wrong way
 
 &lt;img src="index_files/figure-html/plot-comeston-data-draw-1.svg" style="display: block; margin: auto;" /&gt;
 
 ---
 
-# Soap film smooths
+# Soap film smooths &amp;mdash; wrong way
+
+Fit a default spatial smoother using a thin plate spline
 
 
+```r
+tprs &lt;- gam(-depth ~ s(os_x, os_y, k = 60), data = depth, method = "REML")
+```
 
 ---
 
-# Soap film smooths
+# Soap film smooths &amp;mdash; wrong way
 
+
+```r
+summary(tprs)
+```
 
 ```
 ## 
@@ -1581,28 +1673,114 @@ ggplot(bio_post, aes(x = total)) +
 
 ---
 
-# Soap film smooths
+# Soap film smooths &amp;mdash; wrong way
 
-&lt;img src="index_files/figure-html/plot-tprs-comeston-1.svg" style="display: block; margin: auto;" /&gt;
+Predicting from the model &amp;mdash; old-school-style
+
+
+```r
+crds &lt;- st_coordinates(outline)
+grid.x &lt;- with(tprs$var.summary,
+               seq(min(c(os_x, crds[, 1])), max(c(os_x, crds[, 1])), by = 2.5))
+grid.y &lt;- with(tprs$var.summary,
+               seq(min(c(os_y, crds[, 2])), max(c(os_y, crds[, 2])), by = 2.5))
+pdata &lt;- with(tprs$var.summary, expand.grid(os_x = grid.x, ox_y = grid.y))
+names(pdata) &lt;- c("os_x", "os_y")
+##predictions
+pdata &lt;- transform(pdata, Depth = predict(tprs, pdata, type = "response"))
+tmp &lt;- pdata                        # temporary version...
+take &lt;- with(tmp, Depth &gt; 0)        # getting rid of &gt; 0 depth points
+tmp$Depth[take] &lt;- NA
+```
+
+---
+
+# Soap film smooths &amp;mdash; wrong way
+
+Plot the predicted bathymetry
+
+
+```r
+ggplot(outline) +
+  geom_raster(data = tmp, aes(x = os_x, y = os_y, fill = Depth)) +
+  geom_sf() +
+  geom_sf(data = depth, size = 0.5) +
+  coord_sf() +
+  labs(y = "Northing", x = "Easting") +
+  scale_fill_viridis()
+```
+
+---
+
+# Soap film smooths &amp;mdash; wrong way
+
+&lt;img src="index_files/figure-html/plot-tprs-comeston-plot-1.svg" style="display: block; margin: auto;" /&gt;
+
+Default smooth smooths across the peninsular which we don't want
+
+---
+
+# Soap films
+
+Soap film smooths are one solution to this problem
+
+The problem is generally known as _finite area smoothing_
 
 ---
 
 # Soap film knot placement
 
+Placing knots for soap films is tricky
 
+The below works for simple boundaries/domains &amp;mdash; more complex ones will need better knot filling algorithms from GIS
+
+.small[
+
+```r
+bound &lt;- list(list(x = crds[, 1], y = crds[, 2], f = rep(0, nrow(crds))))
+N &lt;- 10
+gx &lt;- seq(min(crds[,1]), max(crds[,1]), len = N)
+gy &lt;- seq(min(crds[,2]), max(crds[,2]), len = N)
+gp &lt;- expand.grid(gx, gy)
+names(gp) &lt;- c("x","y")
+knots &lt;- gp[with(gp, inSide(bound, x, y)), ]
+names(knots) &lt;- c("os_x", "os_y")
+names(bound[[1]]) &lt;- c("os_x", "os_y", "f")
+```
+]
 
 ---
 
 # Soap film knot placement
 
-&lt;img src="resources/soap-film-smoothers-plot-soap-film-set-up-1.png" style="display: block; margin: auto;" /&gt;
+Red points are knots within the boundary
+
+&lt;img src="resources/soap-film-smoothers-plot-soap-film-set-up-1.png" width="80%" style="display: block; margin: auto;" /&gt;
 
 ---
 
 # Soap film model
 
 
+```r
+sf_m &lt;- gam(
+  -depth ~ s(os_x, os_y, bs = "so", xt = list(bnd = bound)),
+  data = depth,
+  method = "REML",
+  knots = knots
+)
+```
 
+Pass the boundary via `xt` argument
+
+---
+
+# Soap film model
+
+
+```r
+summary(sf_m)
+```
 
 ```
 ## 
@@ -1632,19 +1810,49 @@ ggplot(bio_post, aes(x = total)) +
 
 # Soap film `draw()`
 
+
+```r
+draw(sf_m) &amp; coord_fixed()
+```
+
 &lt;img src="index_files/figure-html/soap-film-plot-1.svg" style="display: block; margin: auto;" /&gt;
+
+Needs work: should cover the domain &amp; have a fixed coord system
 
 ---
 
 # Soap film fitted values
 
+Everything else in *gratia* should just work with these soap film smooths
 
+
+```r
+fv &lt;- fitted_values(sf_m, data = pdata)
+```
+
+(Except the `bs = "sf"` alternative; there's a clash with *sf* package that I reported to Simon.)
 
 ---
 
 # Fitted soap film smooth
 
-&lt;img src="index_files/figure-html/soap-film-fv-plot-1.svg" style="display: block; margin: auto;" /&gt;
+.row[
+.col-6[
+
+```r
+ggplot(outline) +
+  geom_raster(data = fv, aes(x = os_x, y = os_y, fill = .fitted)) +
+  geom_sf() +
+  geom_sf(data = depth, size = 0.5) +
+  coord_sf() +
+  labs(y = "Northing", x = "Easting") +
+  scale_fill_viridis()
+```
+]
+.col-6[
+&lt;img src="index_files/figure-html/soap-film-fv-plot-1.svg" width="95%" style="display: block; margin: auto;" /&gt;
+]
+]
 
 ---
 
@@ -1654,6 +1862,20 @@ ggplot(bio_post, aes(x = total)) +
 
 Miller &amp; Wood (2014) [Finite area smoothing with generalized distance splines](https://doi.org/10.1007/s10651-014-0277-4)
 
+
+---
+
+# Find out more
+
+Loads of examples and teaching materials in [my GAM course](https://github.com/gavinsimpson/physalia-gam-course)
+
+Lots of posts on GAMs on my blog [fromthebottomoftheheap.net](https://fromthebottomoftheheap.net)
+
+---
+
+# Reuse
+
+This slide deck is released under CC By Attribution 4.0 International Licence
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>

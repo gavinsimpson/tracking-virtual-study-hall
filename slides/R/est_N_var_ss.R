@@ -8,13 +8,13 @@
 est_N_var_ss <- function(vp, distdata, preddata){
 
   # first need average group sizes in each class
-  ss_avg <- ddply(distdata, .(size_class), summarize, ss_mean=mean(save_size))
+  ss_avg <- plyr::ddply(distdata, plyr::.(size_class), plyr::summarize, ss_mean=mean(save_size))
   # and their empirical variances
-  ss_var <- ddply(distdata, .(size_class), summarize, ss_var=var(save_size))
+  ss_var <- plyr::ddply(distdata, plyr::.(size_class), plyr::summarize, ss_var=var(save_size))
 
   # abundance per size class
   preds <- cbind(preddata, N=vp$pred)
-  N_by_ss <- ddply(preds, .(size_class), summarise, N=sum(N))
+  N_by_ss <- plyr::ddply(preds, plyr::.(size_class), plyr::summarise, N=sum(N))
 
   # now construct the estimate
   sum_term <- merge(N_by_ss, ss_var, by="size_class")
@@ -30,5 +30,3 @@ est_N_var_ss <- function(vp, distdata, preddata){
               varN = varN,
               cvN  = totalCV))
 }
-
-
